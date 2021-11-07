@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 use sqlx::postgres::PgQueryResult;
-
-type Res<T> = Result<T, sqlx::Error>;
+use crate::model::DBResponse;
 
 #[derive(Serialize, Deserialize)]
 pub struct TodoRequest {
@@ -18,7 +17,7 @@ pub struct Todo {
 }
 
 impl Todo {
-    pub async fn find_all(pool: &PgPool) -> Res<Vec<Todo>> {
+    pub async fn find_all(pool: &PgPool) -> DBResponse<Vec<Todo>> {
         let todos = sqlx::query_as!(Todo, "SELECT * FROM todo ORDER BY id")
             .fetch_all(pool)
             .await?;
@@ -26,7 +25,7 @@ impl Todo {
         Ok(todos)
     }
 
-    pub async fn find_by_id(id: i32, pool: &PgPool) -> Res<Option<Todo>> {
+    pub async fn find_by_id(id: i32, pool: &PgPool) -> DBResponse<Option<Todo>> {
         let todo = sqlx::query_as!(Todo, "SELECT * FROM todo WHERE id = $1", id)
             .fetch_optional(pool)
             .await?;
@@ -34,7 +33,7 @@ impl Todo {
         Ok(todo)
     }
 
-    pub async fn create(todo: TodoRequest, pool: &PgPool) -> Res<Todo> {
+    pub async fn create(todo: TodoRequest, pool: &PgPool) -> DBResponse<Todo> {
         let todo = sqlx::query_as!(Todo, "INSERT INTO todo (description, done) VALUES ($1, $2) RETURNING *",
             todo.description,
             todo.done,
@@ -43,7 +42,7 @@ impl Todo {
         Ok(todo)
     }
 
-    pub async fn update(id: i32, todo: TodoRequest, pool: &PgPool) -> Res<Option<Todo>> {
+    pub async fn update(id: i32, todo: TodoRequest, pool: &PgPool) -> DBResponse<Option<Todo>> {
         let todo = sqlx::query_as!(Todo, "UPDATE todo SET description = $1, done = $2 WHERE id = $3 RETURNING *",
             todo.description,
             todo.done,
@@ -53,7 +52,7 @@ impl Todo {
         Ok(todo)
     }
 
-    pub async fn delete(id: i32, pool: &PgPool) -> Res<u64> {
+    pub async fn delete(id: i32, pool: &PgPool) -> DBResponse<u64> {
         let n_deleted: PgQueryResult = sqlx::query!("DELETE FROM todo WHERE id = $1", id)
             .execute(pool)
             .await?;
