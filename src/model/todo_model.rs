@@ -35,51 +35,29 @@ impl Todo {
     }
 
     pub async fn create(todo: TodoRequest, pool: &PgPool) -> Res<Todo> {
-        let mut tx = pool.begin().await?;
-        let id_rec = sqlx::query!("INSERT INTO todo (description, done) VALUES ($1, $2) RETURNING id",
+        let todo = sqlx::query_as!(Todo, "INSERT INTO todo (description, done) VALUES ($1, $2) RETURNING *",
             todo.description,
             todo.done,
-        ).fetch_one(&mut tx).await?;
+        ).fetch_one(pool).await?;
 
-        let rec = sqlx::query!("SELECT * FROM todo WHERE id = $1", id_rec.id)
-            .fetch_one(&mut tx).await?;
-
-        tx.commit().await?;
-
-        Ok(Todo {
-            id: rec.id,
-            description: rec.description,
-            done: rec.done,
-        })
+        Ok(todo)
     }
 
     pub async fn update(id: i32, todo: TodoRequest, pool: &PgPool) -> Res<Option<Todo>> {
-        let mut tx = pool.begin().await.unwrap();
-        let n: PgQueryResult = sqlx::query!("UPDATE todo SET description = $1, done = $2 WHERE id = $3",
+        let todo = sqlx::query_as!(Todo, "UPDATE todo SET description = $1, done = $2 WHERE id = $3 RETURNING *",
             todo.description,
             todo.done,
             id,
-        ).execute(&mut tx).await?;
+        ).fetch_optional(pool).await?;
 
-        if n.rows_affected() == 0 {
-            return Ok(None);
-        }
-
-        let todo = sqlx::query_as!(Todo, "SELECT * FROM todo WHERE id = $1", id)
-            .fetch_one(&mut tx)
-            .await?;
-
-        tx.commit().await.unwrap();
-        Ok(Some(todo))
+        Ok(todo)
     }
 
     pub async fn delete(id: i32, pool: &PgPool) -> Res<u64> {
-        let mut tx = pool.begin().await?;
         let n_deleted: PgQueryResult = sqlx::query!("DELETE FROM todo WHERE id = $1", id)
-            .execute(&mut tx)
+            .execute(pool)
             .await?;
 
-        tx.commit().await?;
         Ok(n_deleted.rows_affected())
     }
 }
