@@ -1,26 +1,62 @@
 use std::env;
 
-use actix_web::{App, get, HttpServer, middleware, Responder, web};
+use actix_web::{App, HttpResponse, HttpServer, middleware, Responder, web};
+use actix_web_httpauth::middleware::HttpAuthentication;
+use dotenv::dotenv;
+use sqlx::migrate::MigrateError;
+use sqlx::PgPool;
+
+use crate::security::authentication::ok_validator;
+use crate::security::tls::get_tls_config;
+use crate::service::todo_service;
+
+mod service;
+mod model;
+mod security;
+
+async fn index() -> impl Responder {
+    HttpResponse::Ok().body(
+        r#"
+        Welcome to Actix-web with SQLx Todos example.
+        Available routes:
+        GET /todos -> list of all todos
+        POST /todo -> create new todo, example: { "description": "learn actix and sqlx", "done": false }
+        GET /todo/{id} -> show one todo with requested id
+        PUT /todo/{id} -> update todo with requested id, example: { "description": "learn actix and sqlx", "done": true }
+        DELETE /todo/{id} -> delete todo with requested id
+        "#
+    )
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env::set_var("RUST_LOG", "actix_web=debug,actix_server=info");
+    dotenv().ok();
     env_logger::init();
 
-    HttpServer::new(|| {
+    let host = env::var("HOST").expect("HOST is not set in .env file");
+    let port = env::var("PORT").expect("PORT is not set in .env file")
+        .parse::<u16>()
+        .expect("PORT should be a u16");
+
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    log::info!("connecting to postgres DB at: {}", &db_url);
+    let db_pool = PgPool::connect(&db_url).await.expect("DB connection failed");
+    let migrate_res: Result<_, MigrateError> = sqlx::migrate!("db/migrations").run(&db_pool).await;
+    match migrate_res {
+        Err(e) => log::error!("migrate failed: {:?}", e),
+        Ok(_) => log::info!("Migrations successful"),
+    }
+
+    let tls_config = get_tls_config().expect("TLS configuration failed.");
+
+    HttpServer::new(move || {
         App::new()
-            // enable logger - always register actix-web Logger middleware last
+            .app_data(web::Data::new(db_pool.clone()))
             .wrap(middleware::Logger::default())
-            // register HTTP requests handlers
-            .service(tweet::list)
-            .service(tweet::get)
-            .service(tweet::create)
-            .service(tweet::delete)
-            .service(like::list)
-            .service(like::plus_one)
-            .service(like::minus_one)
-    })
-        .bind("0.0.0.0:9090")?
+            .wrap(HttpAuthentication::bearer(ok_validator))
+            .route("/", web::get().to(index))
+            .configure(todo_service::init)
+    }).bind_rustls((host, port), tls_config)?
         .run()
         .await
 }

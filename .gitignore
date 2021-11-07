@@ -1,1 +1,4 @@
+.idea
 /target
+.env
+db/sql/*.db

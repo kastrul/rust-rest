@@ -3,15 +3,24 @@ version: '3.1'
 
 services:
 
-  db:
+  db_postgres:
     image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: example
-
-  adminer:
-    image: adminer
-    restart: always
+    restart: 'always'
     ports:
-      - 8080:8080
-      
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+      - ../sql/todo.up.postgres.sql:/docker-entrypoint-initdb.d/todo.up.postgres.sql
+
+volumes:
+  postgres-data:
+
+networks:
+  postgres:
+    driver: bridge
