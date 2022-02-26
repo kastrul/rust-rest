@@ -12,21 +12,21 @@ sqlite = ["sqlx/sqlite"]
 mysql = ["sqlx/mysql"]
 
 [dependencies.sqlx]
-version = "0.5.9"
+version = "0.5.10"
 features = ["runtime-tokio-native-tls", "migrate"]
 
 [dependencies.actix-web]
-version = "4.0.0-beta.10"
+version = "4.0.0-beta.21"
 features = ["rustls"]
 
 [dependencies]
-actix-web-httpauth = "0.6.0-beta.3"
-serde = "1.0.130"
-serde_json = "1.0.68"
-rustls = "0.20.0"
+actix-web-httpauth = "0.6.0-beta.7"
+serde = "1.0.135"
+serde_json = "1.0.78"
+rustls = "0.20.2"
 rustls-pemfile = "0.2.1"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 dotenv = "0.15.0"
 env_logger = "0.9.0"
 log = "0.4.14"
-futures = "0.3.17"
+futures = "0.3.19"

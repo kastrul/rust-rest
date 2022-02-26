@@ -3,7 +3,7 @@ use std::env;
 use actix_web::{App, HttpResponse, HttpServer, middleware, Responder, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use dotenv::dotenv;
-use sqlx::migrate::MigrateError;
+use sqlx::migrate::{MigrateError, Migrator};
 use sqlx::PgPool;
 
 use crate::security::authentication::ok_validator;
@@ -13,6 +13,8 @@ use crate::service::todo_service;
 mod service;
 mod model;
 mod security;
+
+static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 
 async fn index() -> impl Responder {
     HttpResponse::Ok().body(
@@ -41,7 +43,7 @@ async fn main() -> std::io::Result<()> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
     log::info!("connecting to postgres DB at: {}", &db_url);
     let db_pool = PgPool::connect(&db_url).await.expect("DB connection failed");
-    let migrate_res: Result<_, MigrateError> = sqlx::migrate!("db/migrations").run(&db_pool).await;
+    let migrate_res: Result<_, MigrateError> = MIGRATOR.run(&db_pool).await;
     match migrate_res {
         Err(e) => log::error!("migrate failed: {:?}", e),
         Ok(_) => log::info!("Migrations successful"),
