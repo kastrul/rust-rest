@@ -11,15 +11,16 @@ pub fn get_tls_config() -> Result<ServerConfig, Error> {
     let cert_file = &mut BufReader::new(File::open(CERT_PATH).unwrap());
     let key_file = &mut BufReader::new(File::open(KEY_PATH).unwrap());
 
-    let cert_chain: Vec<Certificate> = certs(cert_file)
-        .map(to_cert_vec).expect("Cert failed");
+    let cert_chain: Vec<Certificate> = certs(cert_file).map(to_cert_vec).expect("Cert failed");
     if cert_chain.is_empty() {
         return Err(Error::General(String::from("Could not locate certs.")));
     }
 
     let keys = pkcs8_private_keys(key_file).expect("Private key failed");
     if keys.is_empty() {
-        return Err(Error::General(String::from("Could not locate PKCS 8 private keys.")));
+        return Err(Error::General(String::from(
+            "Could not locate PKCS 8 private keys.",
+        )));
     }
 
     let p_key = PrivateKey(keys[0].clone());

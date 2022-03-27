@@ -1,4 +1,4 @@
-use actix_web::{delete, get, HttpResponse, post, put, Responder, web};
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 use crate::model::todo_model::{Todo, TodoRequest};
@@ -18,8 +18,7 @@ async fn find_all(db_pool: web::Data<PgPool>) -> impl Responder {
         Ok(todos) => HttpResponse::Ok().json(todos),
         Err(err) => {
             log::error!("error fetching todos: {:?}", err);
-            HttpResponse::InternalServerError()
-                .body("Error trying to read all todos from database")
+            HttpResponse::InternalServerError().body("Error trying to read all todos from database")
         }
     }
 }
@@ -39,10 +38,7 @@ async fn find(id: web::Path<i32>, db_pool: web::Data<PgPool>) -> impl Responder 
 }
 
 #[post("/todo")]
-async fn create(
-    todo: web::Json<TodoRequest>,
-    db_pool: web::Data<PgPool>,
-) -> impl Responder {
+async fn create(todo: web::Json<TodoRequest>, db_pool: web::Data<PgPool>) -> impl Responder {
     let result = Todo::create(todo.into_inner(), &db_pool).await;
     match result {
         Ok(todo) => HttpResponse::Ok().json(todo),

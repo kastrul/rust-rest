@@ -1,6 +1,6 @@
 use std::env;
 
-use actix_web::{App, HttpResponse, HttpServer, middleware, Responder, web};
+use actix_web::{middleware, web, App, HttpResponse, HttpServer, Responder};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use dotenv::dotenv;
 use sqlx::migrate::{MigrateError, Migrator};
@@ -10,9 +10,9 @@ use crate::security::authentication::ok_validator;
 use crate::security::tls::get_tls_config;
 use crate::service::todo_service;
 
-mod service;
 mod model;
 mod security;
+mod service;
 
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 
@@ -36,13 +36,16 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let host = env::var("HOST").expect("HOST is not set in .env file");
-    let port = env::var("PORT").expect("PORT is not set in .env file")
+    let port = env::var("PORT")
+        .expect("PORT is not set in .env file")
         .parse::<u16>()
         .expect("PORT should be a u16");
 
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
     log::info!("connecting to postgres DB at: {}", &db_url);
-    let db_pool = PgPool::connect(&db_url).await.expect("DB connection failed");
+    let db_pool = PgPool::connect(&db_url)
+        .await
+        .expect("DB connection failed");
     let migrate_res: Result<_, MigrateError> = MIGRATOR.run(&db_pool).await;
     match migrate_res {
         Err(e) => log::error!("migrate failed: {:?}", e),
@@ -58,7 +61,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(HttpAuthentication::bearer(ok_validator))
             .route("/", web::get().to(index))
             .configure(todo_service::init)
-    }).bind_rustls((host, port), tls_config)?
-        .run()
-        .await
+    })
+    .bind_rustls((host, port), tls_config)?
+    .run()
+    .await
 }

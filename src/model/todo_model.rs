@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool};
-use sqlx::postgres::PgQueryResult;
 use crate::model::DBResponse;
+use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{FromRow, PgPool};
 
 #[derive(Serialize, Deserialize)]
 pub struct TodoRequest {
@@ -34,20 +34,28 @@ impl Todo {
     }
 
     pub async fn create(todo: TodoRequest, pool: &PgPool) -> DBResponse<Todo> {
-        let todo = sqlx::query_as!(Todo, "INSERT INTO todo (description, done) VALUES ($1, $2) RETURNING *",
+        let todo = sqlx::query_as!(
+            Todo,
+            "INSERT INTO todo (description, done) VALUES ($1, $2) RETURNING *",
             todo.description,
             todo.done,
-        ).fetch_one(pool).await?;
+        )
+        .fetch_one(pool)
+        .await?;
 
         Ok(todo)
     }
 
     pub async fn update(id: i32, todo: TodoRequest, pool: &PgPool) -> DBResponse<Option<Todo>> {
-        let todo = sqlx::query_as!(Todo, "UPDATE todo SET description = $1, done = $2 WHERE id = $3 RETURNING *",
+        let todo = sqlx::query_as!(
+            Todo,
+            "UPDATE todo SET description = $1, done = $2 WHERE id = $3 RETURNING *",
             todo.description,
             todo.done,
             id,
-        ).fetch_optional(pool).await?;
+        )
+        .fetch_optional(pool)
+        .await?;
 
         Ok(todo)
     }

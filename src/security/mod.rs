@@ -1,2 +1,2 @@
-pub mod tls;
 pub mod authentication;
+pub mod tls;
